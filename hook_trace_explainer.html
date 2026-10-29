@@ -1,0 +1,630 @@
+<title>libfabric Hook Trace</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,400;0,600;1,400&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+
+<style>
+/* Layout: two-column code+prose at wide, stacked at phone */
+:root {
+  --bg:       #0f1117;
+  --surface:  #171b25;
+  --border:   #252b3a;
+  --fg:       #cdd6f4;
+  --muted:    #6c7492;
+  --accent:   #7eb8f7;
+  --accent2:  #a6e3a1;
+  --accent3:  #f38ba8;
+  --code-bg:  #0a0d13;
+  --hl:       #1e2436;
+  color-scheme: dark;
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --bg:       #f4f6fb;
+    --surface:  #ffffff;
+    --border:   #dde2ee;
+    --fg:       #1a1e2e;
+    --muted:    #6b7280;
+    --accent:   #2563eb;
+    --accent2:  #16a34a;
+    --accent3:  #dc2626;
+    --code-bg:  #e8edf8;
+    --hl:       #dde8ff;
+    color-scheme: light;
+  }
+}
+:root[data-theme="light"] {
+  --bg:       #f4f6fb;
+  --surface:  #ffffff;
+  --border:   #dde2ee;
+  --fg:       #1a1e2e;
+  --muted:    #6b7280;
+  --accent:   #2563eb;
+  --accent2:  #16a34a;
+  --accent3:  #dc2626;
+  --code-bg:  #e8edf8;
+  --hl:       #dde8ff;
+  color-scheme: light;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: 'IBM Plex Sans', system-ui, sans-serif;
+  font-size: 15px;
+  line-height: 1.7;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 2.5rem 4rem;
+}
+
+/* ─── Page header ─── */
+header {
+  margin-bottom: 3rem;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 1.5rem;
+}
+.label {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: .5rem;
+}
+h1 {
+  font-size: clamp(1.6rem, 4vw, 2.4rem);
+  font-weight: 600;
+  line-height: 1.2;
+  text-wrap: balance;
+  margin-bottom: .6rem;
+}
+.subtitle {
+  color: var(--muted);
+  max-width: 52ch;
+}
+
+/* ─── Section titles ─── */
+h2 {
+  font-size: 1.05rem;
+  font-weight: 600;
+  letter-spacing: .01em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin: 2.8rem 0 1rem;
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+}
+h2::before {
+  content: '';
+  display: inline-block;
+  width: 3px;
+  height: 1.1em;
+  background: var(--accent);
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+h3 {
+  font-size: .95rem;
+  font-weight: 600;
+  margin: 1.6rem 0 .5rem;
+  color: var(--fg);
+}
+p { max-width: 70ch; margin-bottom: .9rem; }
+p:last-child { margin-bottom: 0; }
+
+/* ─── Stack diagram ─── */
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  max-width: 420px;
+  margin: 1.5rem 0 2rem;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 13px;
+}
+.stack-layer {
+  padding: .65rem 1rem;
+  border: 1px solid var(--border);
+  border-bottom: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.stack-layer:first-child { border-radius: 8px 8px 0 0; }
+.stack-layer:last-child  { border-radius: 0 0 8px 8px; border-bottom: 1px solid var(--border); }
+.stack-layer.app    { background: var(--hl); color: var(--accent); }
+.stack-layer.hook   { background: #1a2035; color: var(--accent2); border-color: var(--accent2); }
+.stack-layer.prov   { background: var(--surface); color: var(--fg); }
+.stack-layer.hw     { background: var(--code-bg); color: var(--muted); }
+.stack-arrow {
+  text-align: center;
+  color: var(--muted);
+  font-size: 11px;
+  padding: .25rem 0;
+}
+.stack-tag {
+  font-size: 10px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* ─── Code blocks ─── */
+pre {
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1.1rem 1.3rem;
+  overflow-x: auto;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 12.5px;
+  line-height: 1.65;
+  margin: 1rem 0 1.4rem;
+}
+code { font-family: inherit; }
+.kw   { color: var(--accent); }
+.cm   { color: var(--muted); font-style: italic; }
+.str  { color: var(--accent2); }
+.num  { color: #f9e2af; }
+.fn   { color: #cba6f7; }
+.mac  { color: #fab387; }
+
+/* ─── Trace output ─── */
+.trace-line {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .3rem;
+  align-items: baseline;
+  line-height: 1.5;
+  margin-bottom: .3rem;
+}
+.tpid  { color: var(--muted); }
+.tprov { color: var(--accent2); font-weight: 600; }
+.tsub  { color: var(--muted); }
+.tfn   { color: #cba6f7; }
+.tlev  { color: var(--accent3); font-size: 11px; }
+.tmsg  { color: var(--fg); }
+.tlev.trace { color: var(--accent2); }
+.tlev.warn  { color: var(--accent3); }
+
+/* ─── Info boxes ─── */
+.box {
+  border-left: 3px solid var(--accent);
+  background: var(--surface);
+  border-radius: 0 8px 8px 0;
+  padding: .9rem 1.1rem;
+  margin: 1.2rem 0;
+  max-width: 70ch;
+}
+.box.warn { border-color: var(--accent3); }
+.box.good { border-color: var(--accent2); }
+.box-title {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: .4rem;
+}
+.box.warn .box-title { color: var(--accent3); }
+.box.good .box-title { color: var(--accent2); }
+
+/* ─── Steps ─── */
+ol.steps { padding-left: 0; list-style: none; counter-reset: step; }
+ol.steps li {
+  counter-increment: step;
+  display: grid;
+  grid-template-columns: 2rem 1fr;
+  gap: .5rem 1rem;
+  margin-bottom: 1.1rem;
+  align-items: start;
+}
+ol.steps li::before {
+  content: counter(step);
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--bg);
+  background: var(--accent);
+  border-radius: 50%;
+  width: 1.6rem;
+  height: 1.6rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: .2rem;
+}
+
+/* ─── Inline code ─── */
+:not(pre) > code {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: .85em;
+  background: var(--hl);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: .1em .35em;
+}
+
+/* ─── Two-col layout for hook anatomy ─── */
+.two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  align-items: start;
+  margin: 1.2rem 0;
+}
+@media (max-width: 680px) { .two-col { grid-template-columns: 1fr; } }
+
+/* ─── File tree ─── */
+.filetree {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 12.5px;
+  line-height: 1.9;
+  color: var(--fg);
+}
+.filetree .dir  { color: var(--accent); }
+.filetree .hook { color: var(--accent2); }
+.filetree .new  { color: #f38ba8; }
+
+/* ─── Key/val env table ─── */
+.env-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 12.5px;
+  margin: 1rem 0 1.4rem;
+}
+.env-table th {
+  text-align: left;
+  font-size: 10px;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  padding: .4rem .8rem;
+  border-bottom: 1px solid var(--border);
+}
+.env-table td {
+  padding: .45rem .8rem;
+  vertical-align: top;
+  border-bottom: 1px solid var(--border);
+}
+.env-table tr:last-child td { border-bottom: none; }
+.env-table td:first-child { color: var(--accent2); white-space: nowrap; }
+.env-table td:last-child  { color: var(--fg); }
+.env-table .desc { font-family: 'IBM Plex Sans', sans-serif; font-size: 13px; color: var(--muted); }
+</style>
+
+<header>
+  <div class="label">libfabric v2.7.0</div>
+  <h1>How ofi_hook_trace works — and how to plug in your own tracer</h1>
+  <p class="subtitle">A bottom-up tour of the hook provider infrastructure: what runs, when, and exactly where to add your own code.</p>
+</header>
+
+<!-- ════════════════════════════════════════════════════════ -->
+<h2>1 · The provider stack</h2>
+
+<p>
+  libfabric is built around <em>layered providers</em>. When you open a fabric, libfabric inserts any enabled <em>hook providers</em> between your application and the underlying transport. Each hook wraps every operation function pointer, calls the real function, then does its own work (logging, timing, profiling).
+</p>
+
+<div class="stack">
+  <div class="stack-layer app">
+    <span>Your application</span>
+    <span class="stack-tag">fi_send / fi_recv / fi_cq_read …</span>
+  </div>
+  <div class="stack-arrow">↕ hook replaces every fi_ops_* vtable</div>
+  <div class="stack-layer hook">
+    <span>ofi_hook_trace</span>
+    <span class="stack-tag">hook provider</span>
+  </div>
+  <div class="stack-arrow">↕ calls through to real provider</div>
+  <div class="stack-layer prov">
+    <span>tcp / cxi / shm / …</span>
+    <span class="stack-tag">transport provider</span>
+  </div>
+  <div class="stack-arrow">↕</div>
+  <div class="stack-layer hw">
+    <span>kernel / NIC firmware</span>
+    <span class="stack-tag">hardware</span>
+  </div>
+</div>
+
+<p>Hook providers are transparent: they hold a pointer to the underlying fabric/domain/endpoint (<code>hfabric</code>, <code>hdomain</code>, <code>hep</code> …) and forward every call. They never change semantics.</p>
+
+
+<!-- ════════════════════════════════════════════════════════ -->
+<h2>2 · Activating hook_trace</h2>
+
+<p>Three environment variables are all you need:</p>
+
+<table class="env-table">
+  <thead>
+    <tr><th>Variable</th><th>Value used in our example</th><th>Purpose</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>FI_HOOK</td>
+      <td>trace</td>
+      <td class="desc">Semicolon-separated list of hook names. libfabric calls <code>ofi_get_hook()</code> which prepends <code>ofi_hook_</code> to resolve the provider.</td>
+    </tr>
+    <tr>
+      <td>FI_LOG_LEVEL</td>
+      <td>trace</td>
+      <td class="desc">Must be ≥ <code>trace</code>; otherwise <code>FI_TRACE()</code> macros are compiled-out no-ops at runtime.</td>
+    </tr>
+    <tr>
+      <td>FI_LOG_PROV</td>
+      <td>(unset)</td>
+      <td class="desc">Optional filter on provider name. Unset = show all. Set to e.g. <code>tcp</code> to see only hook_trace lines.</td>
+    </tr>
+  </tbody>
+</table>
+
+<pre><code><span class="cm"># run the example with full trace</span>
+LD_LIBRARY_PATH=/path/to/install/lib:$LD_LIBRARY_PATH \
+FI_PROVIDER=tcp FI_HOOK=trace FI_LOG_LEVEL=trace \
+./pingpong</code></pre>
+
+<p>Under the hood, <code>src/fabric.c:ofi_hook_init()</code> reads <code>FI_HOOK</code>, splits it on <code>;</code>, and stores the provider pointers in a module-global <code>hooks[]</code> array. Each time <code>fi_fabric()</code> is called, <code>ofi_hook_install()</code> walks that array and wraps the new fabric object.</p>
+
+
+<!-- ════════════════════════════════════════════════════════ -->
+<h2>3 · What the trace output tells you</h2>
+
+<p>Each line follows the format:</p>
+
+<pre><code>libfabric:<span class="num">PID</span>:<span class="num">TIMESTAMP</span>::<span class="tprov">PROV</span>:<span class="tsub">SUBSYSTEM</span>:<span class="fn">FUNCTION</span>():<span class="num">LINE</span>&lt;<span class="tlev">LEVEL</span>&gt; MESSAGE</code></pre>
+
+<p>From the actual run:</p>
+
+<pre><code><span class="tpid">libfabric:2713465:…</span>::<span class="tprov">tcp</span>:<span class="tsub">fabric</span>:<span class="fn">hook_trace_fabric</span>():<span class="num">1606</span>&lt;<span class="tlev trace">trace</span>&gt; <span class="tmsg">Installing trace hook</span>
+<span class="tpid">libfabric:2713465:…</span>::<span class="tprov">tcp</span>:<span class="tsub">domain</span>:<span class="fn">trace_av_open</span>():<span class="num">1352</span>&lt;<span class="tlev trace">trace</span>&gt; <span class="tmsg">av 0xd87d600, context (nil)</span>
+<span class="tpid">libfabric:2713465:…</span>::<span class="tprov">tcp</span>:<span class="tsub">domain</span>:<span class="fn">trace_cq_open</span>():<span class="num">1389</span>&lt;<span class="tlev trace">trace</span>&gt; <span class="tmsg">cq 0xd87d660 domain 0xd885bc0</span>
+<span class="tpid">libfabric:2713465:…</span>::<span class="tprov">tcp</span>:<span class="tsub">domain</span>:<span class="fn">trace_endpoint</span>():<span class="num">1416</span>&lt;<span class="tlev trace">trace</span>&gt; <span class="tmsg">ep 0xd88ac00</span>
+<span class="tpid">libfabric:2713465:…</span>::<span class="tprov">tcp</span>:<span class="tsub">ep_ctrl</span>:<span class="fn">trace_getname</span>():<span class="num">1063</span>&lt;<span class="tlev trace">trace</span>&gt; <span class="tmsg">addr: fi_sockaddr_in://140.221.120.20:45755</span>
+<span class="tpid">libfabric:2713465:…</span>::<span class="tprov">tcp</span>:<span class="tsub">ep_data</span>:<span class="fn">trace_recv</span>():<span class="num">623</span>&lt;<span class="tlev trace">trace</span>&gt; <span class="tmsg">buf 0x7fff…7280 len 64 addr 0 data 0x0 flags 0x0</span>
+<span class="tpid">libfabric:2713465:…</span>::<span class="tprov">tcp</span>:<span class="tsub">ep_data</span>:<span class="fn">trace_send</span>():<span class="num">665</span>&lt;<span class="tlev trace">trace</span>&gt; <span class="tmsg">buf 0x7fff…72c0 len 22 addr 0 data 0x0 flags 0x0</span>
+<span class="tpid">libfabric:2713465:…</span>::<span class="tprov">tcp</span>:<span class="tsub">cq</span>:<span class="fn">trace_cq_read</span>():<span class="num">1187</span>&lt;<span class="tlev trace">trace</span>&gt; <span class="tmsg">ctx 0x…230 flags 0x802</span>   <span class="cm">← TX done</span>
+<span class="tpid">libfabric:2713465:…</span>::<span class="tprov">tcp</span>:<span class="tsub">cq</span>:<span class="fn">trace_cq_read</span>():<span class="num">1187</span>&lt;<span class="tlev trace">trace</span>&gt; <span class="tmsg">ctx 0x…250 flags 0x402 len 22</span>  <span class="cm">← RX done</span></code></pre>
+
+<p>Flag bits decoded: <code>0x802 = FI_SEND|FI_MSG</code>, <code>0x402 = FI_RECV|FI_MSG</code>. The hook sees every operation in order because it sits on all vtables simultaneously.</p>
+
+
+<!-- ════════════════════════════════════════════════════════ -->
+<h2>4 · How hook_trace is wired — the key source files</h2>
+
+<div class="two-col">
+  <div>
+    <div class="filetree">
+      <div><span class="dir">prov/hook/</span></div>
+      <div>&nbsp;&nbsp;<span class="dir">include/</span></div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;hook_prov.h</div>
+      <div>&nbsp;&nbsp;<span class="dir">src/</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="cm">← base hook layer</span></div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;hook.c</div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;hook_ep.c</div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;hook_cq.c … etc</div>
+      <div>&nbsp;&nbsp;<span class="dir">trace/src/</span>&nbsp;<span class="cm">← THE tracer</span></div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;<span class="hook">hook_trace.c</span></div>
+      <div>&nbsp;&nbsp;<span class="dir">perf/</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="cm">← timing variant</span></div>
+      <div>&nbsp;&nbsp;<span class="dir">hook_debug/</span>&nbsp;<span class="cm">← checks variant</span></div>
+    </div>
+  </div>
+  <div>
+    <p>The key structs from <code>ofi_hook.h</code>:</p>
+    <pre style="margin:0; font-size:11.5px"><code><span class="kw">struct</span> <span class="fn">hook_prov_ctx</span> {
+  <span class="kw">struct</span> fi_provider prov;
+  <span class="cm">/* per-object init callbacks */</span>
+  hook_ini_fn ini_fid[FI_CLASS_CNTR+1];
+};
+
+<span class="kw">struct</span> <span class="fn">hook_fabric</span> {
+  <span class="kw">struct</span> fid_fabric  fabric; <span class="cm">/* exposed */</span>
+  <span class="kw">struct</span> fid_fabric *hfabric;<span class="cm">/* real    */</span>
+  <span class="kw">struct</span> fi_provider *hprov; <span class="cm">/* for logs */</span>
+  ...
+};</code></pre>
+  </div>
+</div>
+
+<h3>Registration (<code>hook_trace.c</code> bottom)</h3>
+<pre><code><span class="cm">/* Every hook provider ends with a constructor macro */</span>
+<span class="kw">struct</span> hook_prov_ctx hook_trace_ctx = {
+    .prov = {
+        .name    = <span class="str">"ofi_hook_trace"</span>,
+        .fabric  = hook_trace_fabric,  <span class="cm">/* called when fi_fabric() wraps */</span>
+        ...
+    },
+};
+
+HOOK_TRACE_INI  <span class="cm">/* expands to __attribute__((constructor)) function */</span>
+{
+    <span class="cm">/* install per-object initialisers */</span>
+    hook_trace_ctx.<span class="fn">ini_fid</span>[FI_CLASS_DOMAIN] = trace_domain_init;
+    hook_trace_ctx.<span class="fn">ini_fid</span>[FI_CLASS_PEP]    = trace_pep_init;
+    <span class="kw">return</span> &hook_trace_ctx.prov;
+}</code></pre>
+
+<h3>Wrapping an object (<code>trace_domain_init</code>)</h3>
+<pre><code><span class="kw">static int</span> <span class="fn">trace_domain_init</span>(<span class="kw">struct</span> fid *fid)
+{
+    <span class="kw">struct</span> fid_domain *domain =
+        container_of(fid, <span class="kw">struct</span> fid_domain, fid);
+
+    <span class="cm">/* replace the vtable pointers with our wrappers */</span>
+    domain->ops = &trace_domain_ops;   <span class="cm">/* av_open, cq_open, endpoint … */</span>
+    domain->mr  = &trace_mr_ops;       <span class="cm">/* mr_reg, mr_regv … */</span>
+    <span class="kw">return</span> 0;
+}</code></pre>
+
+<h3>A typical wrapper (<code>trace_send</code>)</h3>
+<pre><code><span class="kw">static ssize_t</span>
+<span class="fn">trace_send</span>(<span class="kw">struct</span> fid_ep *ep, <span class="kw">const void</span> *buf, <span class="kw">size_t</span> len,
+           <span class="kw">void</span> *desc, fi_addr_t dest_addr, <span class="kw">void</span> *context)
+{
+    <span class="kw">struct</span> hook_ep *myep =
+        container_of(ep, <span class="kw">struct</span> hook_ep, ep);
+
+    <span class="cm">/* 1. call through to the real provider */</span>
+    ssize_t ret = <span class="fn">fi_send</span>(myep->hep, buf, len,
+                           desc, dest_addr, context);
+
+    <span class="cm">/* 2. log on success (ret == 0) */</span>
+    <span class="mac">TRACE_EP_MSG</span>(ret, myep, buf, len, dest_addr, 0, 0, context);
+
+    <span class="kw">return</span> ret;
+}</code></pre>
+
+<div class="box">
+  <div class="box-title">Pattern</div>
+  <p>Every wrapper: <strong>call real function → inspect result → emit trace</strong>. The hook never blocks or modifies data. The macro <code>TRACE_EP_MSG</code> expands to <code>FI_TRACE(prov, FI_LOG_EP_DATA, …)</code>, which is a no-op unless <code>FI_LOG_LEVEL ≥ trace</code>.</p>
+</div>
+
+
+<!-- ════════════════════════════════════════════════════════ -->
+<h2>5 · Writing your own hook provider</h2>
+
+<p>The hook infrastructure is designed for exactly this. You write a self-contained <code>.c</code> file that follows the same pattern as <code>hook_trace.c</code>. You do <strong>not</strong> need to modify libfabric's source.</p>
+
+<h3>Step-by-step</h3>
+
+<ol class="steps">
+  <li>
+    <div>
+      <strong>Create the provider context and name it.</strong>
+      <pre><code><span class="cm">/* my_hook.c */</span>
+<span class="kw">struct</span> hook_prov_ctx my_hook_ctx = {
+    .prov = {
+        .version    = OFI_VERSION_DEF_PROV,
+        .fi_version = OFI_VERSION_LATEST,
+        .name       = <span class="str">"ofi_hook_myhook"</span>, <span class="cm">/* FI_HOOK=myhook */</span>
+        .fabric     = my_hook_fabric,
+    },
+};</code></pre>
+    </div>
+  </li>
+  <li>
+    <div>
+      <strong>Implement <code>my_hook_fabric</code> — called once per <code>fi_fabric()</code>.</strong>
+      <pre><code><span class="kw">static int</span>
+<span class="fn">my_hook_fabric</span>(<span class="kw">struct</span> fi_fabric_attr *attr,
+               <span class="kw">struct</span> fid_fabric **fabric, <span class="kw">void</span> *context)
+{
+    <span class="kw">struct</span> fi_provider *hprov = context; <span class="cm">/* real provider */</span>
+    <span class="kw">struct</span> hook_fabric *fab   = calloc(1, <span class="kw">sizeof</span> *fab);
+
+    hook_fabric_init(fab, HOOK_TRACE, attr->fabric,
+                     hprov, &my_fid_ops, &my_hook_ctx);
+    *fabric = &fab->fabric;
+    <span class="kw">return</span> 0;
+}</code></pre>
+    </div>
+  </li>
+  <li>
+    <div>
+      <strong>Register per-class init callbacks in the INI function.</strong>
+      <pre><code>MY_HOOK_INI   <span class="cm">/* expands to __attribute__((constructor)) */</span>
+{
+    my_hook_ctx.<span class="fn">ini_fid</span>[FI_CLASS_DOMAIN] = my_domain_init;
+    <span class="cm">/* also: FI_CLASS_EP, FI_CLASS_CQ, FI_CLASS_PEP … */</span>
+    <span class="kw">return</span> &my_hook_ctx.prov;
+}</code></pre>
+    </div>
+  </li>
+  <li>
+    <div>
+      <strong>Swap vtables in <code>my_domain_init</code>.</strong>
+      <pre><code><span class="kw">static int</span> <span class="fn">my_domain_init</span>(<span class="kw">struct</span> fid *fid)
+{
+    <span class="kw">struct</span> fid_domain *d =
+        container_of(fid, <span class="kw">struct</span> fid_domain, fid);
+    d->ops = &my_domain_ops;   <span class="cm">/* your fi_ops_domain */</span>
+    d->mr  = &my_mr_ops;
+    <span class="kw">return</span> 0;
+}</code></pre>
+    </div>
+  </li>
+  <li>
+    <div>
+      <strong>Write your operation wrappers.</strong>
+      <pre><code><span class="kw">static ssize_t</span>
+<span class="fn">my_send</span>(<span class="kw">struct</span> fid_ep *ep, <span class="kw">const void</span> *buf,
+        <span class="kw">size_t</span> len, <span class="kw">void</span> *desc,
+        fi_addr_t dest, <span class="kw">void</span> *ctx)
+{
+    <span class="kw">struct</span> hook_ep *myep =
+        container_of(ep, <span class="kw">struct</span> hook_ep, ep);
+
+    <span class="cm">/* your pre-send code: timestamp, LTTng tracepoint … */</span>
+    uint64_t t0 = my_clock();
+
+    ssize_t ret = <span class="fn">fi_send</span>(myep->hep, buf, len,
+                           desc, dest, ctx);
+
+    <span class="cm">/* your post-send code: record latency, emit event … */</span>
+    my_record(<span class="str">"fi_send"</span>, t0, len, ret);
+
+    <span class="kw">return</span> ret;
+}</code></pre>
+    </div>
+  </li>
+  <li>
+    <div>
+      <strong>Build as a shared library and tell libfabric where to find it.</strong>
+      <pre><code>gcc -shared -fPIC -o libmyhook_fi.so my_hook.c \
+    -I$(LIBFABRIC_SRC)/include \
+    -I$(LIBFABRIC_SRC)/src \
+    $(pkg-config --cflags libfabric)
+
+<span class="cm"># point libfabric at the directory containing your .so</span>
+export FI_PROVIDER_PATH=/path/to/my_hook_dir
+export FI_HOOK=myhook
+export FI_LOG_LEVEL=trace   <span class="cm"># if you use FI_TRACE() internally</span></code></pre>
+    </div>
+  </li>
+</ol>
+
+<div class="box good">
+  <div class="box-title">Tip — multiple hooks</div>
+  <p><code>FI_HOOK</code> accepts a semicolon-separated list: <code>FI_HOOK=trace;myhook</code>. The hooks stack left-to-right, innermost first. Your hook sees calls already filtered through <code>hook_trace</code>, and vice versa.</p>
+</div>
+
+<div class="box warn">
+  <div class="box-title">Headers you need</div>
+  <p>Your <code>.c</code> must include internal libfabric headers not installed by default: <code>ofi_hook.h</code>, <code>ofi.h</code>, and optionally <code>ofi_prov.h</code>. Point <code>-I</code> at the source tree's <code>src/</code> and <code>include/</code> dirs, or copy the handful of structs you actually use.</p>
+</div>
+
+
+<!-- ════════════════════════════════════════════════════════ -->
+<h2>6 · Project layout (this repo)</h2>
+
+<pre><code>libfabric_tracer/
+├── <span class="dir">examples/</span>
+│   ├── <span class="hook">pingpong.c</span>          <span class="cm">← minimal loopback send/recv</span>
+│   └── Makefile             <span class="cm">← make run  →  FI_HOOK=trace ./pingpong</span>
+├── <span class="dir">traces/</span>
+│   └── trace_output.txt     <span class="cm">← captured hook_trace output</span>
+├── <span class="dir">src/</span>
+│   └── libfabric-2.7.0/     <span class="cm">← source tree (configure + make done)</span>
+└── <span class="dir">install/</span>               <span class="cm">← --prefix target (lib/, include/, bin/)</span></code></pre>
+
+
+<!-- ════════════════════════════════════════════════════════ -->
+<h2>7 · Quick-reference: key objects and macros</h2>
+
+<table class="env-table">
+  <thead><tr><th>Symbol</th><th>File</th><th>Role</th></tr></thead>
+  <tbody>
+    <tr><td>hook_prov_ctx</td><td>ofi_hook.h</td><td class="desc">Top-level provider descriptor. Holds <code>fi_provider</code> + per-class init array.</td></tr>
+    <tr><td>hook_fabric / hook_domain / hook_ep</td><td>ofi_hook.h</td><td class="desc">Wrapper structs. Each has a pointer to the real object (<code>hfabric</code>, <code>hdomain</code>, <code>hep</code>) and to <code>hprov</code> for logging.</td></tr>
+    <tr><td>container_of(ptr, type, member)</td><td>ofi.h</td><td class="desc">C idiom to recover the outer struct from a field pointer. Used in every wrapper function.</td></tr>
+    <tr><td>FI_TRACE(prov, subsys, fmt, …)</td><td>ofi_log.h</td><td class="desc">Emits a trace-level log entry. No-op unless <code>FI_LOG_LEVEL=trace</code>. Use <code>FI_INFO</code> / <code>FI_WARN</code> for higher levels.</td></tr>
+    <tr><td>HOOK_TRACE_INI / HOOK_PERF_INI</td><td>ofi_hook.h</td><td class="desc">Expands to a GCC <code>__attribute__((constructor))</code> function that registers the provider at load time.</td></tr>
+    <tr><td>ofi_hook_install()</td><td>src/fabric.c</td><td class="desc">Called by <code>fi_fabric()</code>; walks <code>hooks[]</code> and invokes each hook's <code>fabric()</code> entry.</td></tr>
+  </tbody>
+</table>

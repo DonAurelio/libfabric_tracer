@@ -1,0 +1,96 @@
+libfabric:2713465:1793304160::core:core:ofi_hmem_init():678<warn> Failed to initialize hmem iface FI_HMEM_ZE: Input/output error
+libfabric:2713465:1793304160::opx:fabric:fi_opx_ini():1308<trace> Using opx Provider: Library file location is /home/avivasmeza/dev/libfabric_tracer/install/lib/libfabric.so.1.
+libfabric:2713465:1793304160::tcp:fabric:hook_trace_fabric():1606<trace> Installing trace hook
+libfabric:2713465:1793304160::tcp:domain:trace_av_open():1352<trace> av 0xd87d600, context (nil)
+fi_av_attr:
+    type: FI_AV_MAP
+    count: 1
+    ep_per_node: 0
+    name: (null)
+    flags: [  ]
+libfabric:2713465:1793304160::tcp:domain:trace_cq_open():1389<trace> cq 0xd87d660 domain 0xd885bc0 context (nil)
+fi_cq_attr:
+    size: 16
+    flags: [  ]
+    format: FI_CQ_FORMAT_MSG
+    wait_obj: FI_WAIT_NONE
+    signaling_vector: 0
+    wait_cond: FI_CQ_COND_NONE
+    xpu_ctx: (nil)
+libfabric:2713465:1793304160::tcp:domain:trace_endpoint():1416<trace> ep 0xd88ac00 context (nil)
+libfabric:2713465:1793304160::tcp:domain:trace_endpoint():1416<trace> 
+fi_ep_attr:
+    type: FI_EP_RDM
+    protocol: FI_PROTO_XNET
+    protocol_version: 1
+    max_msg_size: 18446744073709551615
+    msg_prefix_size: 0
+    max_order_raw_size: 18446744073709551615
+    max_order_war_size: 0
+    max_order_waw_size: 18446744073709551615
+    mem_tag_format: 0xaaaaaaaaaaaaaaaa
+    tx_ctx_cnt: 1
+    rx_ctx_cnt: 1
+    auth_key_size: 0
+    xpu_ctx: (nil)
+libfabric:2713465:1793304160::tcp:domain:trace_endpoint():1416<trace> 
+fi_tx_attr:
+    caps: [ FI_MSG, FI_SEND, FI_RMA_PMEM ]
+    mode: [  ]
+    op_flags: [  ]
+    msg_order: [ FI_ORDER_RAR, FI_ORDER_RAW, FI_ORDER_RAS, FI_ORDER_WAW, FI_ORDER_WAS, FI_ORDER_SAW, FI_ORDER_SAS, FI_ORDER_RMA_RAR, FI_ORDER_RMA_RAW, FI_ORDER_RMA_WAW, FI_ORDER_ATOMIC_RAR, FI_ORDER_ATOMIC_RAW, FI_ORDER_ATOMIC_WAW ]
+    inject_size: 128
+    size: 256
+    iov_limit: 4
+    rma_iov_limit: 4
+    tclass: 0x0
+libfabric:2713465:1793304160::tcp:domain:trace_endpoint():1416<trace> 
+fi_rx_attr:
+    caps: [ FI_MSG, FI_RECV, FI_MULTI_RECV, FI_RMA_PMEM, FI_RMA_EVENT, FI_SOURCE ]
+    mode: [  ]
+    op_flags: [  ]
+    msg_order: [ FI_ORDER_RAR, FI_ORDER_RAW, FI_ORDER_RAS, FI_ORDER_WAW, FI_ORDER_WAS, FI_ORDER_SAW, FI_ORDER_SAS, FI_ORDER_RMA_RAR, FI_ORDER_RMA_RAW, FI_ORDER_RMA_WAW, FI_ORDER_ATOMIC_RAR, FI_ORDER_ATOMIC_RAW, FI_ORDER_ATOMIC_WAW ]
+    size: 256
+    iov_limit: 4
+libfabric:2713465:1793304160::tcp:domain:trace_endpoint():1416<trace> 
+fi_domain_attr:
+    domain: (nil)
+    name: pub0
+    threading: FI_THREAD_SAFE
+    progress: FI_PROGRESS_AUTO
+    resource_mgmt: FI_RM_ENABLED
+    av_type: FI_AV_UNSPEC
+    mr_mode: [  ]
+    mr_key_size: 8
+    cq_data_size: 8
+    cq_cnt: 256
+    ep_cnt: 256
+    tx_ctx_cnt: 256
+    rx_ctx_cnt: 256
+    max_ep_tx_ctx: 1
+    max_ep_rx_ctx: 1
+    max_ep_stx_ctx: 0
+    max_ep_srx_ctx: 0
+    cntr_cnt: 0
+    mr_iov_limit: 1
+    caps: [ FI_LOCAL_COMM, FI_REMOTE_COMM ]
+    mode: [  ]
+    auth_key_size: 0
+    max_err_data: 0
+    mr_cnt: 0
+    tclass: 0x0
+    max_ep_auth_key: 0
+    max_group_id: 0
+    max_cntr_value: 18446744073709551615
+    max_err_cntr_value: 18446744073709551615
+    max_xpu_ctx_cnt: 0
+libfabric:2713465:1793304160::tcp:ep_ctrl:trace_getname():1063<trace> addr: fi_sockaddr_in://140.221.120.20:45755
+libfabric:2713465:1793304160::tcp:ep_data:trace_recv():623<trace> buf 0x7fff8c407280 len 64 addr 0 data 0x0 flags 0x0 ctx 0x7fff8c407250
+libfabric:2713465:1793304160::tcp:ep_data:trace_send():665<trace> buf 0x7fff8c4072c0 len 22 addr 0 data 0x0 flags 0x0 ctx 0x7fff8c407230
+libfabric:2713465:1793304160::tcp:cq:trace_cq_read():1187<trace> ctx 0x7fff8c407230 flags 0x802
+libfabric:2713465:1793304160::tcp:cq:trace_cq_read():1187<trace> ctx 0x7fff8c407250 flags 0x402 len 22
+libfabric:2713465:1793304160::usnic:fabric:usdf_fini():1041<trace> 
+[app] provider: tcp
+[app] sent:     "hello from hook_trace"
+[app] received: "hello from hook_trace"
+[app] done.

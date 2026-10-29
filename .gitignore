@@ -1,0 +1,6 @@
+# libfabric source tree and build artifacts (too large for git)
+src/
+install/
+
+# compiled example binary
+examples/pingpong
