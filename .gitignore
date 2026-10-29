@@ -2,5 +2,9 @@
 src/
 install/
 
-# compiled example binary
+# compiled example binaries
 examples/pingpong
+examples/pingpong_module
+
+# compiled tracer DSO
+my_tracer/libmytracer_fi.so
